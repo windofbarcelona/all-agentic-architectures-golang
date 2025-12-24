@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	tooluse "tooluseagent/tool_use"
 
+	"github.com/cloudwego/eino-ext/devops"
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
@@ -13,6 +17,9 @@ import (
 
 func main() {
 	ctx := context.Background()
+	// Init eino devops server
+	err := devops.Init(ctx)
+
 	if runnable, err := tooluse.GetToolUseRunnable(); err != nil {
 		panic(err)
 	} else {
@@ -24,6 +31,18 @@ func main() {
 			fmt.Println("res:", res)
 		}
 	}
+	if err != nil {
+		log.Fatal(err.Error())
+		return
+	}
+
+	// Blocking process exits
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+
+	// Exit
+	log.Fatal("[eino dev] shutting down\n")
 }
 
 type loggerCallbacks struct{}
