@@ -13,7 +13,7 @@ import (
 )
 
 func GetModel() (model.ToolCallingChatModel, error) {
-	err := godotenv.Load("./tool_use/model.env")
+	err := godotenv.Load("../model.env")
 	if err != nil {
 		fmt.Println("Error loading.env file:", err)
 		return nil, err

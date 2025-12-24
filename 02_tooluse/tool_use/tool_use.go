@@ -2,6 +2,7 @@ package tooluse
 
 import (
 	"context"
+	"io"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
@@ -49,6 +50,15 @@ func GetToolUseRunnable() (compose.Runnable[map[string]any, *schema.Message], er
 		return input, nil
 	}
 
+	modelPostBranchCondition := func(ctx context.Context, sr *schema.StreamReader[*schema.Message]) (endNode string, err error) {
+		if isToolCall, err := firstChunkStreamToolCallChecker(ctx, sr); err != nil {
+			return "", err
+		} else if isToolCall {
+			return "ToolsNode", nil
+		}
+		return compose.END, nil
+	}
+
 	makeAnswerTemplate := DraftCodeTemplate()
 	sg.AddChatTemplateNode("MakeAnswerTemplate", &makeAnswerTemplate, compose.WithNodeName("MakeAnswerTemplate"))
 	sg.AddChatModelNode("MakeAnswerModel", model, compose.WithNodeName("MakeAnswerModel"), compose.WithStatePreHandler(modelPreHandle))
@@ -57,9 +67,13 @@ func GetToolUseRunnable() (compose.Runnable[map[string]any, *schema.Message], er
 
 	sg.AddEdge(compose.START, "MakeAnswerTemplate")
 	sg.AddEdge("MakeAnswerTemplate", "MakeAnswerModel")
-	sg.AddEdge("MakeAnswerModel", "ToolsNode")
+	//sg.AddEdge("MakeAnswerModel", "ToolsNode")
+	if err = sg.AddBranch("MakeAnswerModel", compose.NewStreamGraphBranch(modelPostBranchCondition, map[string]bool{"ToolsNode": true, compose.END: true})); err != nil {
+		return nil, err
+	}
 	sg.AddEdge("ToolsNode", "Synthesis")
 	sg.AddEdge("Synthesis", compose.END)
+
 	reflectionRunnable, err := sg.Compile(context.Background())
 	return reflectionRunnable, err
 }
@@ -75,4 +89,28 @@ func genToolInfos(ctx context.Context, tools []tool.BaseTool) ([]*schema.ToolInf
 	}
 
 	return toolInfos, nil
+}
+
+func firstChunkStreamToolCallChecker(_ context.Context, sr *schema.StreamReader[*schema.Message]) (bool, error) {
+	defer sr.Close()
+
+	for {
+		msg, err := sr.Recv()
+		if err == io.EOF {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+
+		if len(msg.ToolCalls) > 0 {
+			return true, nil
+		}
+
+		if len(msg.Content) == 0 { // skip empty chunks at the front
+			continue
+		}
+
+		return false, nil
+	}
 }
