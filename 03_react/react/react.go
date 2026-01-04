@@ -50,10 +50,10 @@ func GetToolUseRunnable() (compose.Runnable[map[string]any, *schema.Message], er
 		return input, nil
 	}
 
-	toolsNodePostHandle := func(ctx context.Context, input *schema.Message, state *state) (*schema.Message, error) {
-		state.Messages = append(state.Messages, input)
-		return input, nil
-	}
+	// toolsNodePostHandle := func(ctx context.Context, input *schema.Message, state *state) (*schema.Message, error) {
+	// 	state.Messages = append(state.Messages, input)
+	// 	return input, nil
+	// }
 
 	modelPostBranchCondition := func(ctx context.Context, sr *schema.StreamReader[*schema.Message]) (endNode string, err error) {
 		if isToolCall, err := firstChunkStreamToolCallChecker(ctx, sr); err != nil {
@@ -67,7 +67,7 @@ func GetToolUseRunnable() (compose.Runnable[map[string]any, *schema.Message], er
 	makeAnswerTemplate := DraftCodeTemplate()
 	sg.AddChatTemplateNode("MakeAnswerTemplate", &makeAnswerTemplate, compose.WithNodeName("MakeAnswerTemplate"))
 	sg.AddChatModelNode("MakeAnswerModel", model, compose.WithNodeName("MakeAnswerModel"), compose.WithStatePreHandler(modelPreHandle))
-	sg.AddToolsNode("ToolsNode", toolNode, compose.WithNodeName("ToolsNode"), compose.WithStatePreHandler(toolsNodePreHandle), compose.WithStatePostHandler(toolsNodePostHandle))
+	sg.AddToolsNode("ToolsNode", toolNode, compose.WithNodeName("ToolsNode"), compose.WithStatePreHandler(toolsNodePreHandle))
 	sg.AddChatModelNode("Synthesis", model, compose.WithNodeName("Synthesis"), compose.WithStatePreHandler(modelPreHandle))
 
 	sg.AddEdge(compose.START, "MakeAnswerTemplate")
@@ -77,7 +77,8 @@ func GetToolUseRunnable() (compose.Runnable[map[string]any, *schema.Message], er
 		return nil, err
 	}
 	sg.AddEdge("ToolsNode", "MakeAnswerModel")
-	reflectionRunnable, err := sg.Compile(context.Background())
+	compileOpts := []compose.GraphCompileOption{compose.WithMaxRunSteps(20)}
+	reflectionRunnable, err := sg.Compile(context.Background(), compileOpts...)
 	return reflectionRunnable, err
 }
 

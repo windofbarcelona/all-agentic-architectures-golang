@@ -1,4 +1,4 @@
-package react
+package main
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func main() {
 		panic(err)
 	} else {
 		if res, err := runnable.Invoke(ctx, map[string]any{
-			"user_query": "规划一条从鸟巢到北京西站，骑自行车的路线",
+			"user_query": "路人甲在北京西站，路人乙在鸟巢，找一个离他俩距离适中的商场，要求商场有火锅店",
 		}, compose.WithCallbacks(&loggerCallbacks{})); err != nil {
 			panic(err)
 		} else {
