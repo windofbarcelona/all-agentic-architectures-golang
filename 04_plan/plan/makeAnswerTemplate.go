@@ -7,11 +7,18 @@ import (
 
 func DraftCodeTemplate() prompt.DefaultChatTemplate {
 	systemTpl := `
-	角色：你是一名出色的行程规划师，善于利用工具为用户提供精准的出行方案。
-	任务：根据用户的需求，规划出一条出行路线。
+	角色:你是一个计划专家
+	任务：你的工作是创建一个循序渐进的计划来回答用户的请求。
 	要求：
-	1. 你每次最多调用一次工具去获取你所需的信息
-	2. 当你不需要调用工具时，需要总结你已知的所有信息，给出最终的出行方案
+	1. 你每次最多调用一个工具，并且该工具的信息必须是你已知的
+	2. 你需要按顺序输出你想要调用的工具名称及调用该工具的参数，
+		举例如下：
+		{
+			{
+				"toolName":"工具名1",
+				"arg":"参数对应的json字符串"
+			},
+		}
 	`
 	chatTpl := prompt.FromMessages(schema.FString,
 		schema.SystemMessage(systemTpl),
