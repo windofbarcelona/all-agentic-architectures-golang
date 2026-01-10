@@ -20,7 +20,7 @@ func main() {
 		panic(err)
 	} else {
 		if res, err := runnable.Invoke(ctx, map[string]any{
-			"user_query": "找一条从北京西站到北京南站的路线",
+			"user_query": "找一条从北京西站到北京南站的地铁路线",
 		}, compose.WithCallbacks(&loggerCallbacks{})); err != nil {
 			panic(err)
 		} else {
